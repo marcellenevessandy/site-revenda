@@ -1,170 +1,294 @@
 <?php
-// Inclua os arquivos necessários (conexão com o banco de dados, classes Cliente e Veiculo)
-include_once './config/config.php'; // Arquivo com a configuração de conexão ao banco
-include_once './classes/Cliente.php';
-include_once './classes/Veiculo.php';
-include_once './classes/Venda.php'; // Crie uma classe para gerenciar as vendas
+include_once './config/config.php';
+include_once './classes/Venda.php';
 
-$cliente = new Cliente($);
-$veiculo = new Veiculo($conn);
-$venda = new Venda($conn); // Supondo que a classe Venda foi criada para gerenciar vendas
+// Criar a conexão com o banco de dados
+$database = new Database();
+$db = $database->getConnection();
 
-// Variáveis para armazenar dados recebidos
-$mensagem = '';
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Recebe os dados do formulário
-    $clienteId = $_POST['cliente-id'];
-    $veiculoId = $_POST['veiculo-id'];
-    $dataVenda = $_POST['data_venda'];
-    $desconto = $_POST['desconto'] ?? 0;  // Desconto, caso o usuário tenha fornecido
-    $formaPagamento = $_POST['forma_pagamento'];
-    $descricao = $_POST['descricao'];
+// Criar uma instância da classe Venda
+$venda = new Venda($db);
 
-    // Recupera os dados do cliente e veículo
-    $clienteInfo = $cliente->buscarPorId($clienteId);
-    $veiculoInfo = $veiculo->buscarPorId($veiculoId);
+session_start();
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit();
+}
 
-    // Calcula o preço com desconto
-    $precoFinal = $veiculoInfo['preco'] - ($veiculoInfo['preco'] * ($desconto / 100));
+// Verificar se o formulário foi enviado
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id_cliente = $_POST['cliente_id'];
+    $id_veiculo = $_POST['veiculo_id'];
+    $desconto = $_POST['desconto'];
 
-    // Cria a venda no banco de dados
-    $vendaCriada = $venda->cadastrarVenda($clienteId, $veiculoId, $dataVenda, $precoFinal, $formaPagamento, $descricao);
-    
-    if ($vendaCriada) {
-        $mensagem = "Venda registrada com sucesso!";
+    // Cadastrar a venda
+    if ($venda->cadastrar($id_cliente, $id_veiculo, $desconto)) {
+        echo "Venda cadastrada com sucesso!";
+        
+        // Redirecionar para a página portal.php
+        header('Location: portal.php');
+        exit();
     } else {
-        $mensagem = "Erro ao registrar a venda.";
+        echo "Erro ao cadastrar venda.";
     }
 }
-?>
 
+// Buscar os veículos disponíveis
+$queryVeiculos = "SELECT id, modelo, preco FROM veiculos WHERE status = 'disponível'";
+$stmtVeiculos = $db->prepare($queryVeiculos);
+$stmtVeiculos->execute();
+
+// Buscar os clientes
+$queryClientes = "SELECT id, nome, cpf FROM clientes";
+$stmtClientes = $db->prepare($queryClientes);
+$stmtClientes->execute();
+
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="./imagens/raposa.png" type="image/x-icon">
     <title>Cadastrar Venda</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #cb640d;
+            --background-color: #000;
+            --text-color: #ffffff;
+            --link-color: #cb640d;
+            --border-color: #ff7f00;
+            --hover-color: #f9bb64;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding-top: 70px;
+        }
+
+        .navbar {
+            background-color: var(--background-color);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text-color);
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--link-color);
+        }
+
+        .navbar-brand img {
+            max-width: 200px;
+        }
+
+        .btn-warning {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            width: 100%;
+        }
+
+
+        .btn-warning:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+        }
+
+        .titulo {
+            color: var(--primary-color);
+            font-size: 2rem;
+            font-weight: bold;
+            display: inline-block;
+            position: relative;
+        }
+
+        .titulo::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+    </style>
 </head>
+
 <body>
-<div class="container mt-5">
-    <h2>Cadastrar Venda</h2>
-    <?php if ($mensagem) { ?>
-        <div class="alert alert-info"><?php echo $mensagem; ?></div>
-    <?php } ?>
+
     
-    <form method="POST" action="cadastrarVenda.php">
-        <!-- Cliente -->
-        <div class="mb-3">
-            <label for="cliente" class="form-label">Cliente (Nome ou CPF)</label>
-            <input type="text" class="form-control" id="cliente" name="cliente" placeholder="Digite o nome ou CPF" onkeyup="searchCliente()">
-            <input type="hidden" id="cliente-id" name="cliente-id">
-            <div id="cliente-results" class="list-group"></div>
-        </div>
-        
-        <!-- Veículo -->
-        <div class="mb-3">
-            <label for="veiculo" class="form-label">Veículo (Placa)</label>
-            <input type="text" class="form-control" id="veiculo" name="veiculo" placeholder="Digite a placa do veículo" onkeyup="searchVeiculo()">
-            <input type="hidden" id="veiculo-id" name="veiculo-id">
-            <div id="veiculo-results" class="list-group"></div>
-        </div>
+<header>
+        <nav class="navbar navbar-expand-lg navbar-dark d-flex align-items-center fixed-top">
+            <div class="container">
+                <a class="navbar-brand me-auto" href="portal.php"><img src="./imagens/logo.png" alt="Logo" class="img-fluid"></a>
+                <!-- Botão de alternância (hambúrguer) para dispositivos móveis -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <!-- Menu Navbar (vai ser colapsado no mobile e expandido no desktop) -->
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <!-- Opções de navegação para o desktop (visível em telas grandes) -->
+                    <ul class="navbar-nav ms-auto d-flex align-items-center d-none d-lg-flex">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Cadastrar
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="cadastrarUsuario.php">Novo Usuário</a></li>
+                                <li><a class="dropdown-item" href="cadastrarCliente.php">Novo Cliente</a></li>
+                                <li><a class="dropdown-item" href="cadastrarVeiculo.php">Novo Veículo</a></li>
+                                <li><a class="dropdown-item" href="cadastrarVenda.php">Nova Venda</a></li>
+                            </ul>
+                        </li>
 
-        <!-- Data da Venda -->
-        <div class="mb-3">
-            <label for="data_venda" class="form-label">Data da Venda</label>
-            <input type="date" class="form-control" id="data_venda" name="data_venda" required>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Consultar
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="consultarUsuario.php">Consultar Usuários</a></li>
+                                <li><a class="dropdown-item" href="consultarCliente.php">Consultar Clientes</a></li>
+                                <li><a class="dropdown-item" href="consultarVeiculo.php">Consultar Veículos</a></li>
+                                <li><a class="dropdown-item" href="consultarVenda.php">Consultar Venda</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Sair -->
+                        <li class="nav-item"><a class="nav-link fw-bold" href="logout.php"><button class="btn btn-warning fw-bold">SAIR</button></a></li>
+                    </ul>
+
+                    <!-- Opções de navegação para o mobile (visível apenas em telas pequenas) -->
+                    <ul class="navbar-nav ms-auto d-flex flex-column d-lg-none">
+                        <li><a class="dropdown-item" href="cadastrarUsuario.php">Novo Usuário</a></li>
+                        <li><a class="dropdown-item" href="cadastrarCliente.php">Novo Cliente</a></li>
+                        <li><a class="dropdown-item" href="cadastrarVeiculo.php">Novo Veículo</a></li>
+                        <li><a class="dropdown-item" href="cadastrarVenda.php">Novo Venda</a></li>
+                        <li><a class="dropdown-item" href="consultarUsuario.php">Consultar Usuários</a></li>
+                        <li><a class="dropdown-item" href="consultarCliente.php">Consultar Clientes</a></li>
+                        <li><a class="dropdown-item" href="consultarVeiculo.php">Consultar Veículos</a></li>
+                        <li><a class="dropdown-item" href="consultarVendas.php">Consultar Vendas</a></li>
+                        <li class="nav-item"><a class="nav-link fw-bold" href="logout.php"><button class="btn btn-warning fw-bold">SAIR</button></a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h2 class="titulo">Cadastrar Venda</h2><br><br>
+
+                <form method="POST" action="cadastrarVenda.php" enctype="multipart/form-data">
+
+                    <div class="row">
+                        <div class="col">
+                            <!-- Cliente -->
+                            <div class="mb-3">
+                                <label class="form-label" for="cliente">Selecione o Cliente</label><br>
+                                <select class="form-select" name="cliente_id" id="cliente" required onchange="preencherCPF()">
+                                    <option value="" disabled selected>Selecione um cliente</option>
+                                    <?php while ($cliente = $stmtClientes->fetch(PDO::FETCH_ASSOC)) { ?>
+                                        <option value="<?= $cliente['id'] ?>" data-cpf="<?= $cliente['cpf'] ?>">
+                                            <?= $cliente['nome'] ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+
+                            <!-- CPF do Cliente -->
+                            <div class="mb-3">
+                                <label class="form-label" for="cpf">CPF do Cliente</label>
+                                <input type="text" class="form-control" id="cpf" name="cpf" readonly>
+                            </div>
+
+                            <!-- Veículo -->
+                            <div class="mb-3">
+                                <label class="form-label" for="veiculo">Veículo:</label>
+                                <select class="form-select" name="veiculo_id" id="veiculo" required onchange="preencherVeiculo()">
+                                    <option value="" disabled selected>Selecione um veículo</option>
+                                    <?php while ($veiculo = $stmtVeiculos->fetch(PDO::FETCH_ASSOC)) { ?>
+                                        <option value="<?= $veiculo['id'] ?>" data-preco="<?= number_format($veiculo['preco'], 2, '.', '') ?>">
+                                            <?= $veiculo['modelo'] ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="col">
+                            <!-- Preço -->
+                            <div class="mb-3">
+                                <label for="preco" class="form-label">Preço</label>
+                                <input type="number" step="0.01" class="form-control" id="preco" name="preco" required readonly>
+                            </div>
+
+                            <!-- Desconto -->
+                            <div class="mb-3">
+                                <label class="form-label" for="desconto">Desconto (%):</label>
+                                <input class="form-control" type="number" id="desconto" name="desconto" min="0" max="100" value="0" onchange="calcularValorFinal()">
+                            </div>
+
+                            <!-- Valor Final -->
+                            <div class="mb-3">
+                                <label class="form-label" for="valor_final">Valor Final:</label>
+                                <input class="form-control" type="text" id="valor_final" name="valor_final" readonly>
+                            </div>
+                        </div>
+                    </div><br>
+
+
+                    
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">Cadastrar</button>
+                </form>
+            </div>
         </div>
+    </div>
 
-        <!-- Desconto -->
-        <div class="mb-3">
-            <label for="desconto" class="form-label">Desconto (%)</label>
-            <input type="number" class="form-control" id="desconto" name="desconto" min="0" max="100" value="0">
-        </div>
-
-        <!-- Forma de Pagamento -->
-        <div class="mb-3">
-            <label for="forma_pagamento" class="form-label">Forma de Pagamento</label>
-            <select class="form-control" id="forma_pagamento" name="forma_pagamento" required>
-                <option value="pix">PIX</option>
-                <option value="dinheiro">Dinheiro</option>
-                <option value="boleto">Boleto</option>
-                <option value="cartao_credito">Cartão de Crédito</option>
-                <option value="cartao_debito">Cartão de Débito</option>
-            </select>
-        </div>
-
-        <!-- Descrição -->
-        <div class="mb-3">
-            <label for="descricao" class="form-label">Descrição</label>
-            <textarea class="form-control" id="descricao" name="descricao" rows="3"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Registrar Venda</button>
-    </form>
-</div>
-
-<script>
-    // Função para pesquisa de cliente
-    function searchCliente() {
-        let search = document.getElementById('cliente').value;
-        if (search.length > 2) {
-            fetch(`cadastrarVenda.php?search_cliente=${search}`)
-                .then(response => response.json())
-                .then(data => {
-                    let results = document.getElementById('cliente-results');
-                    results.innerHTML = '';  // Limpar resultados anteriores
-                    if (data.length > 0) {
-                        data.forEach(cliente => {
-                            let item = document.createElement('div');
-                            item.classList.add('list-group-item');
-                            item.textContent = `${cliente.nome} - ${cliente.cpf}`;
-                            item.onclick = () => selectCliente(cliente);
-                            results.appendChild(item);
-                        });
-                    } else {
-                        results.innerHTML = '<div class="list-group-item">Nenhum cliente encontrado.</div>';
-                    }
-                });
+    <script>
+        // Preenche o campo CPF ao selecionar o cliente
+        function preencherCPF() {
+            const clienteSelect = document.getElementById('cliente');
+            const cpfInput = document.getElementById('cpf');
+            const cpf = clienteSelect.options[clienteSelect.selectedIndex]?.getAttribute('data-cpf');
+            cpfInput.value = cpf || '';
         }
-    }
 
-    function selectCliente(cliente) {
-        document.getElementById('cliente').value = cliente.nome;
-        document.getElementById('cliente-id').value = cliente.id;  // Salvar ID do cliente
-        document.getElementById('cliente-results').innerHTML = '';  // Limpar sugestões
-    }
-
-    // Função para pesquisa de veículo
-    function searchVeiculo() {
-        let search = document.getElementById('veiculo').value;
-        if (search.length > 2) {
-            fetch(`cadastrarVenda.php?search_veiculo=${search}`)
-                .then(response => response.json())
-                .then(data => {
-                    let results = document.getElementById('veiculo-results');
-                    results.innerHTML = '';  // Limpar resultados anteriores
-                    if (data.length > 0) {
-                        data.forEach(veiculo => {
-                            let item = document.createElement('div');
-                            item.classList.add('list-group-item');
-                            item.textContent = `${veiculo.placa} - ${veiculo.modelo}`;
-                            item.onclick = () => selectVeiculo(veiculo);
-                            results.appendChild(item);
-                        });
-                    } else {
-                        results.innerHTML = '<div class="list-group-item">Nenhum veículo encontrado.</div>';
-                    }
-                });
+        // Preenche o preço ao selecionar o veículo
+        function preencherVeiculo() {
+            const veiculoSelect = document.getElementById('veiculo');
+            const precoInput = document.getElementById('preco');
+            const preco = veiculoSelect.options[veiculoSelect.selectedIndex]?.getAttribute('data-preco');
+            precoInput.value = preco || 0;
+            calcularValorFinal();
         }
-    }
 
-    function selectVeiculo(veiculo) {
-        document.getElementById('veiculo').value = veiculo.placa;
-        document.getElementById('veiculo-id').value = veiculo.id;  // Salvar ID do veículo
-        document.getElementById('veiculo-results').innerHTML = '';  // Limpar sugestões
-    }
-</script>
+        // Calcula o valor final com desconto
+        function calcularValorFinal() {
+            const preco = parseFloat(document.getElementById('preco').value) || 0;
+            const desconto = parseFloat(document.getElementById('desconto').value) || 0;
+            const valorFinal = preco - (preco * desconto / 100);
+            document.getElementById('valor_final').value = valorFinal.toFixed(2);
+        }
+
+        // Inicializa os campos ao carregar a página
+        window.onload = () => {
+            preencherCPF();
+            preencherVeiculo();
+        };
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
+
 </html>

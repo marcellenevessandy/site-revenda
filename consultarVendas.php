@@ -1,19 +1,32 @@
 <?php
 include_once './config/config.php';
-include_once './classes/Veiculo.php';
+include_once './classes/Venda.php';
 
-$veiculo = new Veiculo($db);
-$veiculos = $veiculo->listarTodos();
+// Criar a conexão com o banco de dados
+$database = new Database();
+$db = $database->getConnection();
+
+// Criar uma instância da classe Venda
+$venda = new Venda($db);
+
+// Buscar as vendas realizadas
+$vendas = $venda->listarVendas();
+
+session_start();
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="./imagens/raposa.png" type="image/x-icon">
-    <title>Consultar Veículos</title>
+    <title>Consulta de Vendas</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
@@ -111,7 +124,6 @@ $veiculos = $veiculo->listarTodos();
 </head>
 
 <body>
-
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark d-flex align-items-center fixed-top">
             <div class="container">
@@ -167,28 +179,35 @@ $veiculos = $veiculo->listarTodos();
                 </div>
             </div>
         </nav>
-    </header><br><br>
+    </header>
 
     <div class="container mt-5">
-        <h2 class="text-center titulo">Lista de Veículos</h2><br><br>
+        <h2 class="text-center titulo">Lista de Vendas</h2><br><br>
 
-        <div class="cliente-grid">
-            <?php foreach ($veiculos as $veiculo): ?>
-
-                <div class="cliente-card">
-                    <h5 class="card-title"><strong>Placa: </strong> <?php echo $veiculo['placa']; ?></h5>
-                    <p class="card-text"><strong>Modelo: </strong><?php echo $veiculo['modelo']; ?></p>
-                    <p class="card-text"><strong>R$ </strong><?= number_format($veiculo['preco'], 2, ',', '.'); ?></p>
-                    <div class="actions-btn">
-                        <a href="editarVeiculo.php?id=<?php echo $veiculo['id']; ?>" class="btn btn-warning btn-sm">Editar</a>
-                        <a href="deletarVeiculo.php?id=<?php echo $veiculo['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja deletar?');">Excluir</a>
+        <!-- Grid de Vendas -->
+        <div class="row">
+            <?php foreach ($vendas as $venda): ?>
+                <div class="col-md-4 col-sm-12 mb-4">
+                    <!-- Cartão de Venda -->
+                    <div class="cliente-card">
+                        <!-- Cliente -->
+                        <h5 class="card-title"><strong>Cliente: </strong> <?php echo htmlspecialchars($venda['cliente_nome']); ?></h5>
+                        <!-- Veículo -->
+                        <p class="card-text"><strong>Veículo: </strong><?php echo htmlspecialchars($venda['veiculo_modelo']); ?></p>
+                        <!-- Valor Final -->
+                        <p class="card-text"><strong>Valor da Venda: </strong>R$ <?= number_format($venda['valor_final'], 2, ',', '.'); ?></p>
+                        <!-- Botões de Ações -->
+                        <div class="actions-btn d-flex gap-2">
+                            <a href="editarVenda.php?id=<?php echo $venda['venda_id']; ?>" class="btn btn-warning btn-sm">Editar</a>
+                            <a href="deletarVenda.php?id=<?php echo $venda['venda_id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja deletar esta venda?');">Excluir</a>
+                        </div>
                     </div>
                 </div>
-
             <?php endforeach; ?>
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 

@@ -1,116 +1,138 @@
 <?php
-class Veiculo
-{
+class Veiculo {
     private $conn;
 
-    // Construtor que recebe a conexão com o banco de dados
+    // Construtor que recebe a conexão com o banco
     public function __construct($db)
     {
         $this->conn = $db;
     }
 
-    public function cadastrar($placa, $modelo, $ano_fabricado, $ano_modelo, $marca, $cor, $tipo, $combustivel, $chassi, $renavan, $observacao, $status, $preco)
-    {
-        $query = "INSERT INTO veiculos (placa, modelo, ano_fabricado, ano_modelo, marca, cor, tipo, combustivel, chassi, renavan, observacao, status, preco)
-                  VALUES (:placa, :modelo, :ano_fabricado, :ano_modelo, :marca, :cor, :tipo, :combustivel, :chassi, :renavan, :observacao, :status, :preco)";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':placa', $placa);
-        $stmt->bindParam(':modelo', $modelo);
-        $stmt->bindParam(':ano_fabricado', $ano_fabricado);
-        $stmt->bindParam(':ano_modelo', $ano_modelo);
-        $stmt->bindParam(':marca', $marca);
-        $stmt->bindParam(':cor', $cor);
-        $stmt->bindParam(':tipo', $tipo);
-        $stmt->bindParam(':combustivel', $combustivel);
-        $stmt->bindParam(':chassi', $chassi);
-        $stmt->bindParam(':renavan', $renavan);
-        $stmt->bindParam(':observacao', $observacao);
-        $stmt->bindParam(':status', $status);
-        $stmt->bindParam(':preco', $preco);
+    public function cadastrar($placa, $modelo, $ano_modelo, $marca, $cor, $observacao, $status, $preco, $imagem) {
+        try {
+            $query = "INSERT INTO veiculos (placa, modelo, ano_modelo, marca, cor, observacao, status, preco, imagem) 
+                      VALUES (:placa, :modelo, :ano_modelo, :marca, :cor, :observacao, :status, :preco, :imagem)";
+            $stmt = $this->conn->prepare($query);
 
-        return $stmt->execute();
-    }
+            // Binding parameters
+            $stmt->bindParam(':placa', $placa);
+            $stmt->bindParam(':modelo', $modelo);
+            $stmt->bindParam(':ano_modelo', $ano_modelo);
+            $stmt->bindParam(':marca', $marca);
+            $stmt->bindParam(':cor', $cor);
+            $stmt->bindParam(':observacao', $observacao);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':preco', $preco);
+            $stmt->bindParam(':imagem', $imagem);
 
-    public function atualizar($id, $placa, $modelo, $ano_fabricado, $ano_modelo, $marca, $cor, $tipo, $combustivel, $chassi, $renavan, $observacao, $status, $preco)
-    {
-        $query = "UPDATE veiculos SET placa = :placa, modelo = :modelo, ano_fabricado = :ano_fabricado, ano_modelo = :ano_modelo,
-                  marca = :marca, cor = :cor, tipo = :tipo, combustivel = :combustivel, chassi = :chassi, renavan = :renavan,
-                  observacao = :observacao, status = :status, preco = :preco WHERE id = :id";
-
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':placa', $placa);
-        $stmt->bindParam(':modelo', $modelo);
-        $stmt->bindParam(':ano_fabricado', $ano_fabricado);
-        $stmt->bindParam(':ano_modelo', $ano_modelo);
-        $stmt->bindParam(':marca', $marca);
-        $stmt->bindParam(':cor', $cor);
-        $stmt->bindParam(':tipo', $tipo);
-        $stmt->bindParam(':combustivel', $combustivel);
-        $stmt->bindParam(':chassi', $chassi);
-        $stmt->bindParam(':renavan', $renavan);
-        $stmt->bindParam(':observacao', $observacao);
-        $stmt->bindParam(':status', $status);
-        $stmt->bindParam(':preco', $preco);
-        $stmt->bindParam(':id', $id);
-
-        return $stmt->execute();
-    }
-
-    public function buscarPorId($id)
-    {
-        $query = "SELECT * FROM veiculos WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    // Método para listar todos os veículos
-    public function listarTodos()
-    {
-        $query = "SELECT * FROM veiculos";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // Função para deletar um veículo
-    public function deletar($id)
-    {
-        // SQL para excluir o veículo com base no ID
-        $query = "DELETE FROM veiculos WHERE id = :id";
-
-        // Prepara a consulta
-        $stmt = $this->conn->prepare($query);
-
-        // Bind do parâmetro ID
-        $stmt->bindParam(':id', $id);
-
-        // Executa a consulta e verifica se foi bem-sucedido
-        if ($stmt->execute()) {
-            return true;
-        } else {
-            throw new Exception("Erro ao excluir veículo.");
+            return $stmt->execute();
+        } catch (Exception $e) {
+            echo "Erro ao cadastrar veículo: " . $e->getMessage();
+            return false;
         }
     }
 
-    public function listarDisponiveis()
-    {
-        $query = "SELECT id, modelo, placa FROM veiculos WHERE status = 'disponível'";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function atualizar($id, $placa, $modelo, $ano_modelo, $marca, $cor, $observacao, $status, $preco, $imagem = null) {
+        try {
+            $query = "UPDATE veiculos SET placa = :placa, modelo = :modelo, ano_modelo = :ano_modelo,
+                      marca = :marca, cor = :cor, observacao = :observacao, status = :status, preco = :preco";
+
+            if ($imagem) {
+                $query .= ", imagem = :imagem";
+            }
+
+            $query .= " WHERE id = :id";
+
+            $stmt = $this->conn->prepare($query);
+
+            // Binding parameters
+            $stmt->bindParam(':placa', $placa);
+            $stmt->bindParam(':modelo', $modelo);
+            $stmt->bindParam(':ano_modelo', $ano_modelo);
+            $stmt->bindParam(':marca', $marca);
+            $stmt->bindParam(':cor', $cor);
+            $stmt->bindParam(':observacao', $observacao);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':preco', $preco);
+            $stmt->bindParam(':id', $id);
+
+            if ($imagem) {
+                $stmt->bindParam(':imagem', $imagem);
+            }
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            echo "Erro ao atualizar veículo: " . $e->getMessage();
+            return false;
+        }
     }
 
-    // Dentro da classe Veiculo
-    public function pesquisar($search)
-    {
-        $query = "SELECT id, placa, modelo, marca, preco, ano_modelo FROM veiculos WHERE placa LIKE :search LIMIT 3";
-        $stmt = $this->conn->prepare($query);
-        $search = "%" . $search . "%";  // para realizar uma busca com LIKE
-        $stmt->bindParam(':search', $search);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function buscarPorId($id) {
+        try {
+            $query = "SELECT * FROM veiculos WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            echo "Erro ao buscar veículo: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function listarTodos() {
+        try {
+            $query = "SELECT * FROM veiculos";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            echo "Erro ao listar veículos: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function deletar($id) {
+        try {
+            $query = "DELETE FROM veiculos WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            echo "Erro ao deletar veículo: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function listarDisponiveis() {
+        try {
+            $query = "SELECT id, modelo, placa, preco, imagem FROM veiculos WHERE status = 'disponível'";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            echo "Erro ao listar veículos disponíveis: " . $e->getMessage();
+            return false;
+        }
+    }    
+
+    public function pesquisar($search) {
+        try {
+            $query = "SELECT id, placa, modelo, ano_modelo, marca, preco, imagem 
+                      FROM veiculos 
+                      WHERE placa LIKE :search OR modelo LIKE :search OR marca LIKE :search
+                      ORDER BY preco LIMIT 3";
+            $stmt = $this->conn->prepare($query);
+            $search = "%" . $search . "%";
+            $stmt->bindParam(':search', $search);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            echo "Erro ao pesquisar veículos: " . $e->getMessage();
+            return false;
+        }
     }
 }
+
+?>

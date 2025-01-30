@@ -5,6 +5,17 @@ O **FoxMotors** é um sistema desenvolvido para facilitar a gestão de revendas 
 
 ---
 
+## 🎨 **Links Importantes**
+
+- 🔗 Acesse o Sistema: [Acesse o FoxMotors](https://marcellesandy.com.br/)
+Para acessar o sistema use as informações abaixo.
+Usuário: teste@teste.com
+Senha: Teste12.
+- 📚 Documentação do Branding: [Acesse o Branding](https://www.canva.com/design/DAGYBrknxbw/3MKnkPnVkDES1QNTOX16WA/edit?utm_content=DAGYBrknxbw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+- 🎨 Protótipo no Figma: [Acesse o Figma](https://www.figma.com/design/GhBeXSgSrp2Caz9nblTMbq/Untitled?node-id=0-1&t=Ix4xWTYN7kSvDudA-1)
+
+---
+
 ## 🎯 **Objetivo do Projeto**  
 
 O objetivo do **FoxMotors** é fornecer uma plataforma simples, intuitiva e completa para a administração de revendas de veículos. Focado na produtividade, o sistema permite:  

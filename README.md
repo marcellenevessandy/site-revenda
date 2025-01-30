@@ -128,52 +128,6 @@ ProjetoFinal_MarcelleSandy/
 
 ---
 
-## 😎 Instalação e Uso
-
-### **Pré-requisitos**
-
-Antes de iniciar, certifique-se de ter instalado:
-
-- **PHP 8.x**
-- **MySQL**
-
----
-
-### 🚀 **Passo a Passo**
-
-1. **Clone o repositório**:
-
-   ```bash
-   git clone https://github.com/marcellenevessandy/ProjetoFinal_MarcelleSandy.git
-   cd foxmotors
-
-2. **Configure o banco de dados**:
-
-   - **Importe** o arquivo `database.sql` no **MySQL**.
-
-   - **Edite** o arquivo de configuração do banco de dados:
-     Abra o arquivo `config/config.php` e ajuste as credenciais conforme o seu ambiente:
-
-     ```php
-     <?php
-     define('DB_HOST', 'localhost'); // Host do banco de dados
-     define('DB_NAME', 'nome_do_banco'); // Nome do banco de dados
-     define('DB_USER', 'usuario'); // Usuário do banco
-     define('DB_PASS', 'senha'); // Senha do banco
-     ?>
-     ```
-3. **Inicie o servidor**:
-
-   Se estiver utilizando o servidor nativo do **PHP**, execute o seguinte comando no terminal:
-
-   ```bash
-   php -S localhost:8000
-
-4. **Acesse ao navegador**:
-http://localhost:8000
-
----
-
 ### 🎨 **Capturas de Tela**
 Tela de Login
 ![Login FoxMotors](login.png)
